@@ -1,0 +1,66 @@
+services:
+  # MQTT Broker (Mosquitto)
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: mosquitto
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+    networks:
+      - factory-net
+
+  # Fog Node (Node-RED)
+  nodered:
+    image: nodered/node-red:latest
+    container_name: nodered
+    ports:
+      - "1880:1880"
+    volumes:
+      - nodered-data:/data
+    environment:
+      - TZ=Europe/Moscow
+    networks:
+      - factory-net
+    depends_on:
+      - mosquitto
+
+  # Edge Device (Temperature Sensor)
+  sensor:
+    build:
+      context: .
+      dockerfile: Dockerfile.sensor
+    container_name: sensor
+    environment:
+      - MQTT_BROKER=mosquitto
+      - MQTT_PORT=1883
+      - MQTT_TOPIC=factory/sensor/temperature
+    networks:
+      - factory-net
+    depends_on:
+      - mosquitto
+    restart: unless-stopped
+
+  # Cloud Monitor (Alert Receiver)
+  cloud:
+    build:
+      context: .
+      dockerfile: Dockerfile.cloud
+    container_name: cloud
+    environment:
+      - MQTT_BROKER=mosquitto
+      - MQTT_PORT=1883
+      - MQTT_TOPIC=cloud/alerts/temperature
+    networks:
+      - factory-net
+    depends_on:
+      - mosquitto
+    restart: unless-stopped
+
+networks:
+  factory-net:
+    driver: bridge
+
+volumes:
+  nodered-data:
