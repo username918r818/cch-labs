@@ -17,8 +17,6 @@ services:
     container_name: nodered
     ports:
       - "1880:1880"
-    volumes:
-      - nodered-data:/data
     environment:
       - TZ=Europe/Moscow
     networks:
@@ -61,6 +59,3 @@ services:
 networks:
   factory-net:
     driver: bridge
-
-volumes:
-  nodered-data:
